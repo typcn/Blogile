@@ -17,9 +17,8 @@
                                           ggggg      
 --------------------------------------------------------------------------
 
-[![Build Status](https://nodei.co/npm/blogile.png?mini=true)](https://www.npmjs.org/package/blogile)
+[![NPM](https://nodei.co/npm/blogile.png?mini=true)](https://www.npmjs.org/package/blogile)
 
-[![Build Status](https://travis-ci.org/typcn/Blogile.svg)](https://travis-ci.org/typcn/Blogile)
 
 WARN: The project is not completed.
 
