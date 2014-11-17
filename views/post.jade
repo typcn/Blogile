@@ -1,0 +1,57 @@
+doctype html
+html(lang="zh-CN")
+  head
+    script
+      | var startime = Date.now();
+    title= PostData[0].title
+    link(rel='stylesheet',href='../css/style.css')
+    meta(name='viewport',content='width=device-width, initial-scale=1.0')
+  body
+    #header
+      h1
+        a(href='../')
+          | !{BlogTitle}
+      #nav
+        .menu
+            span
+              | &nbsp;
+            span
+              | &nbsp;
+            span
+              | &nbsp;
+        ul
+          li
+            a(href='../') 首页
+          li
+            a(href='https://ocf.eqoe.cn') 论坛
+          li
+            a(href='http://weibo.com/typcn') 微博
+          li
+            a(href='http://shang.qq.com/wpa/qunwpa?idkey=ff3cb472987c2e0ec511d699ff1ae534bbf7440ae11a7202787ccb8b629203c9') 加群
+    #main
+      ul.postlist(style='width:97%')
+        - each post in PostData
+          li.postitle
+              h1= post.title
+              span
+                i.icon.icon-calendar
+                span.time(data-time=post.time)
+              span
+                a(href='../categorys/'+Category.url_short+'.html')
+                  i.icon.icon-briefcase
+                  span
+                    = Category.name
+              span
+                a(href='#comments')
+                  i.icon.icon-comment
+                  span#comment.ds-thread-count(data-thread-key=post.id)
+                    | No Comment
+          li.postcontent
+              - var mdcont = marked(post.content)
+              p !{mdcont}
+          li#comments
+
+              div.ds-thread(data-thread-key=post.id,data-title=post.title,data-url=ds_url)
+    #footer
+      script(type='text/javascript',src='../js/scripts.js')
+    

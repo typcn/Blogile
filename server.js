@@ -1,0 +1,457 @@
+var express = require('express');
+var bodyParser = require('body-parser');
+var cookieParser = require('cookie-parser');
+var app = express();
+var jade = require('jade');
+var cache = require('memory-cache');
+var mysql = require('mysql');
+var marked = require('marked');
+var wait =require('wait.for');
+var fs = require("fs");
+app.use(bodyParser({limit: '10mb'}));
+app.use(cookieParser());
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(express.static(__dirname + '/public'));
+
+/* Config */
+var CACHE_ENABLE = 1; /* Use Memory Cache */
+app.locals.title = 'BlogName'; /* Your Blog Name */
+app.locals.postperpage = 10; /* How much posts display per page */
+app.locals.AdminUsername = 'admin'; /* admin username */
+var sqlconf = {
+  host     : '127.0.0.1', /* Database IP */
+  port     : 3306,   /* Database Port */
+  user     : 'root',/* Database Username */
+  password : '',/* Database Password */
+  database: 'blogile'/* Database Name */
+};
+
+var connection;
+var cache_miss = 0;
+var cache_hit = 0;
+function ConnDB(){
+   connection = mysql.createConnection(sqlconf);
+   connection.connect(function(err) {
+     if(err != null){
+        log("Mysql Connect error:" + err,3);
+        setTimeout(ConnDB,2000);
+     }else{
+        log("Mysql Connected!");
+        BuildCache();
+     }
+   });
+   connection.on('error', function(err) {
+      log(err,3);
+      ConnDB();
+   });
+}
+
+ConnDB();
+
+
+marked.setOptions({
+  highlight: function (code) {
+    return require('highlight.js').highlightAuto(code).value;
+  }
+});
+
+app.get('/', function(req, res) {
+   var loadStart = Date.now();
+   var cachePage = cache.get('index');
+   if(cachePage){
+      res.set('X-Builtin-Cache', 'hit');
+      res.set('X-Server-Load-Time', Date.now() - loadStart);
+      cache_hit++;
+      res.send(cachePage);
+   }else{
+      wait.launchFiber(getNav, 1, false);
+      //Get Data from Database
+      connection.query('SELECT * FROM bi_posts order by time desc LIMIT 0 , ' + app.locals.postperpage , function(err, rows) {
+         if(err){ log("Please run 'node install.js IP PORT USERNAME PASSWORD DBName' to install blogile."); ConnDB();}
+         var pageContent = jade.renderFile(__dirname + '/views/index.jade', {
+               PageTitle: app.locals.title,
+               BlogTitle: app.locals.title,
+               PostData: rows,
+               getimg: getFirstImage,
+               memory:cache,
+               nav:cache.get("nav-1")
+            });
+         if(CACHE_ENABLE == 1){
+            cache.put('index', pageContent);
+            res.set('X-Builtin-Cache', 'miss');
+            cache_miss++;
+            log(req.path + " Cached");
+         }
+         res.set('X-Server-Load-Time', Date.now() - loadStart);
+         res.send(pageContent);
+      });
+   }
+});
+
+app.get('/page/:num', function(req, res) {
+   var loadStart = Date.now();
+   var cachePage = cache.get('page' + req.params.num);
+   if(cachePage){
+      res.set('X-Builtin-Cache', 'hit');
+      res.set('X-Server-Load-Time', Date.now() - loadStart);
+      cache_hit++;
+      res.send(cachePage);
+   }else{
+      var docnum = req.params.num*app.locals.postperpage - app.locals.postperpage;
+      var pagedoc = docnum + app.locals.postperpage;
+      //Get Data from Database
+      wait.launchFiber(getNav, req.params.num, true);
+
+      connection.query('SELECT * FROM bi_posts order by id desc LIMIT '+ docnum + ' , ' +  pagedoc, function(err, rows) {
+         if(err){ log("Please run 'node install.js IP PORT USERNAME PASSWORD DBName' to install blogile."); ConnDB();}
+         var pageContent = jade.renderFile(__dirname + '/views/index.jade', {
+               PageTitle: 'Page ' + req.params.num + " - " + app.locals.title,
+               BlogTitle: app.locals.title,
+               PostData: rows,
+               memory:cache,
+               getimg: getFirstImage,
+               subdir:true,
+               nav:cache.get("nav-" + req.params.num)
+            });
+         if(CACHE_ENABLE == 1){
+            cache.put('page' + req.params.num, pageContent);
+            res.set('X-Builtin-Cache', 'miss');
+            cache_miss++;
+            log(req.path + " Cached");
+         }
+         res.set('X-Server-Load-Time', Date.now() - loadStart);
+         res.send(pageContent);
+      });
+   }
+});
+
+app.get('/posts/:shortname.html', function(req, res) {
+   var loadStart = Date.now();
+   var cachePage = cache.get('post-' + req.params.shortname);
+   if(cachePage){
+      res.set('X-Builtin-Cache', 'hit');
+      res.set('X-Server-Load-Time', Date.now() - loadStart);
+      cache_hit++;
+      res.send(cachePage);
+   }else{
+      //Get Data from Database
+      connection.query('SELECT * FROM bi_posts where shortname = ' + connection.escape(req.params.shortname), function(err, rows) {
+         if(err){ log(err,3);}
+         if(rows[0] === undefined){
+            res.set('X-Builtin-Cache', 'hit');
+            res.set('X-Server-Load-Time', Date.now() - loadStart);
+            res.status(404);
+            res.send(cache.get('E404'));
+            return;
+         }
+
+         var pageContent = jade.renderFile(__dirname + '/views/post.jade', {
+               BlogTitle: app.locals.title,
+               PostData: rows,
+               Category: cache.get("categorydata-" + rows[0].category),
+               marked : marked,
+               ds_url:"http://" + req.hostname + req.path
+            });
+         if(CACHE_ENABLE == 1){
+            cache.put('post-' + req.params.shortname, pageContent);
+            res.set('X-Builtin-Cache', 'miss');
+            log(req.path + " Cached");
+            cache_miss++;
+         }
+         res.set('X-Server-Load-Time', Date.now() - loadStart);
+         res.send(pageContent);
+      });
+   }
+});
+
+app.get('/archives/:shortname.html', function(req, res) {
+   res.redirect(301, '../posts/' + req.params.shortname + '.html');
+});
+
+app.get('/donate', function(req, res) {
+   res.redirect(301, '/donate.html');
+});
+
+app.get('/categorys/:shortname.html', function(req, res) {
+   var loadStart = Date.now();
+   var cachePage = cache.get('category-' + req.params.shortname);
+   if(cachePage){
+      res.set('X-Builtin-Cache', 'hit');
+      res.set('X-Server-Load-Time', Date.now() - loadStart);
+      cache_hit++;
+      res.send(cachePage);
+   }else{
+      var cat = cache.get("categorydata-" + req.params.shortname);
+      if(cat === undefined){
+         res.set('X-Builtin-Cache', 'hit');
+         res.set('X-Server-Load-Time', Date.now() - loadStart);
+         res.status(404);
+         res.send(cache.get('E404'));
+         return;
+      }
+      //Get Data from Database
+      connection.query('SELECT * FROM bi_posts where category = ' + connection.escape(cat.id) + ' order by time desc', function(err, rows) {
+         if(err){ log(err,3);}
+         var pageContent = jade.renderFile(__dirname + '/views/index.jade', {
+               PageTitle: cat.name+' - '+app.locals.title,
+               BlogTitle: app.locals.title,
+               PostData: rows,
+               getimg: getFirstImage,
+               memory:cache,
+               subdir:true,
+               nav:""
+            });
+         if(CACHE_ENABLE == 1){
+            cache.put('category-' + req.params.shortname, pageContent);
+            res.set('X-Builtin-Cache', 'miss');
+            log(req.path + " Cached");
+            cache_miss++;
+         }
+         res.set('X-Server-Load-Time', Date.now() - loadStart);
+         res.send(pageContent);
+      });
+   }
+});
+
+
+// Blog Admin
+app.post('/admin/login', function(req, res) {
+   if(req.param('username') != app.locals.AdminUsername){
+      res.send("-1");
+      log(Date.now() + " Username Error from " + req.ip,2);
+   }else{
+      var file = __dirname + '/.blogilepassword';
+      if(fs.existsSync(file)){
+         var sha1 = require('sha1');
+         var pwb = req.param('password');
+         var pwc = md5(pwb + pwb.substr(3,11) + "Poweredbytypcn");
+         var pwd = sha1(pwc+pwc+pwb);
+         var localpw = fs.readFileSync(file);
+         if(pwd==localpw){
+            var session = sha1(Math.random());
+            cache.put(session,true);
+            res.cookie('ADMINSESSION', session, { expires: new Date(Date.now() + 9999999999), httpOnly: true })
+            res.send("0");
+            log(Date.now() + " Login Success from " + req.ip,2);
+         }else{
+            res.send("-1");
+            log(Date.now() + " Password Error from " + req.ip,2);
+         }
+      }else{
+         res.send("-2");
+      }
+   }
+});
+
+app.get('/admin/check', function(req, res) {
+   if(cache.get(req.cookies.ADMINSESSION) != true){
+      res.send("-1");
+   }else{
+      res.send("0");
+   }
+});
+
+app.get('/admin/status', function(req, res) {
+   if(cache.get(req.cookies.ADMINSESSION) != true){
+      res.send("-1");
+   }else{
+      connection.query('SELECT COUNT(*) AS namesCount FROM bi_posts', function(err, rows) {   
+         var result = {};
+         var memoryUsage = process.memoryUsage();
+         result['uptime'] = process.uptime();
+         result['memory'] = memoryUsage.rss / 1024 / 1024;
+         result['cachehit'] = cache_hit;
+         result['cachemiss'] = cache_miss;
+         result['docnum'] = rows[0].namesCount;
+         res.contentType('application/json');
+         res.send(JSON.stringify(result));
+      });
+   }
+});
+
+app.get('/admin/delcache/:name', function(req, res) {
+   if(cache.get(req.cookies.ADMINSESSION) != true){
+      res.send("-1");
+   }else{
+      if(req.params.name == "all"){
+         cache.clear();
+         BuildCache();
+         res.send("0");
+      }else{
+         cache.del(req.params.name);
+         res.send("0");
+      }
+   }
+});
+
+app.get('/admin/post/list/:ppp/:pid', function(req, res) {
+   if(cache.get(req.cookies.ADMINSESSION) != true){
+      res.send("-1");
+   }else{
+      if(req.params.name == "all"){
+         cache.clear();
+         BuildCache();
+         res.send("0");
+      }else{
+         cache.del(req.params.name);
+         res.send("0");
+      }
+   }
+});
+
+app.post('/admin/post/new', function(req, res) {
+	if(cache.get(req.cookies.ADMINSESSION) != true){
+      res.send("-1");
+   }else{
+		if(req.param('url')){
+			var time = Math.round(+new Date()/1000);
+			var category = req.param('category');
+			if(!category){
+				category = 0;
+			}
+			var q = 'INSERT INTO `bi_posts`(`time`, `content`, `title`, `shortname`, `category`) VALUES (' + time + ',' +  connection.escape(req.param('content')) + ',' + connection.escape(req.param('title')) + ',' +  connection.escape(req.param('url')) + ',' + category + ')';
+			connection.query(q, function(err, rows) {
+				if(err) { 
+					log(err,3); 
+					res.send("-2"); 
+				}else{
+					res.send("0");
+					cache.del("index");
+				}
+			});
+		}else{
+			res.send("1");
+		}
+   }
+});
+
+app.post('/admin/upload/base64', function(req, res) {
+   if(cache.get(req.cookies.ADMINSESSION) != true){
+      res.send("-1");
+   }else{
+	  var str = req.param('imgstr');
+	  var matches = str.match(/^data:image\/([A-Za-z-+\/]+);base64,(.+)$/);
+
+	  if (matches.length !== 3) {
+		res.status(500);
+		res.send("-2");
+	  }
+
+	  var filetype = matches[1].replace("x-icon","ico");
+	  filetype = filetype.replace("jpeg","jpg");
+	  
+	  var data = new Buffer(matches[2], 'base64');
+	  
+	  var filename = Date.now() + '.' + filetype;
+	  
+	  fs.writeFile(__dirname + '/public/images/' + filename, data, function(err) { 
+			if(err){
+				res.status(500);
+				res.send("-3");
+			}
+			res.send("images/" + filename);
+	  });
+   }
+});
+
+app.listen(8023);
+
+
+
+function BuildCache(){
+   //404 Page
+   cache.put('E404', jade.renderFile( __dirname + '/views/404.jade',{ BlogTitle:app.locals.title }));
+   //Categorys
+   connection.query('SELECT * FROM bi_categorys', function(err, rows) {
+      for (var i = 0, len = rows.length; i < len; i++) {
+        cache.put('categorydata-' + rows[i].id,rows[i]);
+        cache.put('categorydata-' + rows[i].url_short,rows[i]);
+      }
+      var category = {};
+      category.id = 0;
+      category.name = "Uncategorized";
+      category.url_short = "uncategorized";
+      cache.put("categorydata-0",category);
+      cache.put("categorydata-uncategorized",category);
+      log("Category Cache Built");
+   });
+}
+var getFirstImage = function(content){
+   var regex = /<img.*?src="(.*?)"/;
+   var src = regex.exec(content);
+   if(src){
+      return src[1];
+   }else{
+      return false;
+   }
+};
+
+
+function md5(name){
+   var crypto = require('crypto');
+   return crypto.createHash('md5').update(name).digest('hex');
+}
+
+function getNav(currpage,subdir){
+   var rows = wait.forMethod(connection,'query','SELECT COUNT(*) AS namesCount FROM bi_posts');
+   var DOM = '<div id="pageNav">';
+   var postnum = rows[0].namesCount;
+   var pagenum = Math.ceil(postnum/app.locals.postperpage);
+   if(currpage != 1){
+      var lastpage = currpage - 1;
+      DOM += '<a href="'+ lastpage +'" class="button pagenav">上一页</a>';
+   }
+   for(var i=0 ; i < pagenum ; i++ ){
+      var num = i + 1;
+      var url = "page/" + num;
+      if(subdir){
+         url = num;
+      }
+      if(currpage == num){
+         DOM += '<a href="'+ url +'" class="button pagenav current">' + num + '</a>';
+      }else{
+         DOM += '<a href="'+ url +'" class="button pagenav">' + num + '</a>';
+      }
+   }
+   if(currpage != pagenum){
+      var nextpage = parseInt(currpage) + 1;
+      if(subdir){
+         DOM += '<a href="'+ nextpage +'" class="button pagenav">下一页</a>';
+      }else{
+         DOM += '<a href="page/'+ nextpage +'" class="button pagenav">下一页</a>';
+      }
+   }
+   DOM += '</div>';
+   cache.put("nav-" + currpage,DOM);
+}
+
+
+setInterval(logStat,60000);
+logStat();
+
+function logStat(){
+   var memoryUsage = process.memoryUsage();
+   log("Uptime: " + process.uptime() + "  Memory Usage: " + memoryUsage.rss / 1024 / 1024);
+   var cachenum = cache_hit + cache_miss;
+   var hitrate = cache_hit/cachenum;
+   log("Cache hit: " + cache_hit + " Cache miss: " + cache_miss + " Hit rate: " + hitrate*100 + "%");
+}
+
+process.on('uncaughtException', function(err) {
+  log('Caught exception: ' + err,3);
+});
+
+function log(str,level){
+   var msg = "INFO";
+   var file = "./blogile.log";
+   if(level == 2){ msg = "WARN"; }
+   else if(level == 3){ msg="ERR";file="./error.log"; }
+   var str2 = msg + " [" + Date().toLocaleString() + "] " + str;
+   console.log(str2);
+
+   fs.appendFile(file, str2 + "\n", function (err) {
+     if(err){
+         console.log("Log Write Failed");
+     }
+   });
+}

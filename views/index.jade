@@ -1,0 +1,120 @@
+doctype html
+html(lang="zh-CN")
+  head
+    script
+      | var startime = Date.now();
+    title= PageTitle
+    - if(subdir){
+    link(rel='stylesheet',href='../css/style.css')
+    - }else{
+    link(rel='stylesheet',href='css/style.css')
+    - }
+    meta(name='viewport',content='width=device-width, initial-scale=1.0')
+  body
+    #header
+      h1
+        - if(subdir){
+        a(href='../')
+          | !{BlogTitle}
+        - }else{
+        a(href='./')
+          | !{BlogTitle}
+        - }
+        
+      #nav
+        .menu
+            span
+              | &nbsp;
+            span
+              | &nbsp;
+            span
+              | &nbsp;
+        ul
+          li
+            - if(subdir){
+            a(href='../') 首页
+            - }else{
+            a.current(href='./') 首页
+            -}
+          li
+            a(href='https://ocf.eqoe.cn') 论坛
+          li
+            a(href='http://weibo.com/typcn') 微博
+          li
+            a(href='http://shang.qq.com/wpa/qunwpa?idkey=ff3cb472987c2e0ec511d699ff1ae534bbf7440ae11a7202787ccb8b629203c9') 加群
+    #main
+      ul.postlist
+        - each post in PostData
+          - var cl = "post noimg"
+          - var fimg = getimg(post.content)
+          - var cata = memory.get("categorydata-" + post.category)
+          - if(fimg){ cl = "post hasimg"}
+          li(class=cl,data-postid=post.id)
+            - if(subdir){
+            a(href='../posts/'+post.shortname+'.html')
+              h1= post.title
+            - }else{
+            a(href='posts/'+post.shortname+'.html')
+              h1= post.title
+            - }
+            #container.col
+              img(style='display:none',data-img=fimg)
+              - var postcontent = post.content.replace(/(<([^>]+)>)/ig,"").replace(/\r?\n|\r/g, " ").substr(0,200)
+              p
+                | !{postcontent}
+            p(class='postarch')
+              span
+                i.icon.icon-calendar
+                span.time(data-time=post.time)
+              span
+                - if(subdir){
+                a(href='../categorys/'+cata.url_short+'.html')
+                  i.icon.icon-briefcase
+                  span
+                    = cata.name
+                - }else{
+                a(href='categorys/'+cata.url_short+'.html')
+                  i.icon.icon-briefcase
+                  span
+                    = cata.name
+                - }
+              span
+                - if(subdir){
+                a(href='../posts/'+post.shortname+'.html#comments')
+                  i.icon.icon-comment
+                  span#comment.ds-thread-count(data-thread-key=post.id)
+                    | No Comment
+                - }else{
+                a(href='posts/'+post.shortname+'.html#comments')
+                  i.icon.icon-comment
+                  span#comment.ds-thread-count(data-thread-key=post.id)
+                    | No Comment
+                - }
+        li
+          | !{nav}
+      ul.sidebar
+        li
+          h3 热评文章
+          #container.col
+            .ds-top-threads(data-range="monthly",data-num-items="5")
+        li
+          h3 文章分类
+          #container.col
+            待添加   
+        li
+          h3 最近访客
+          #container.col
+            .ds-recent-visitors(data-num-items="20",data-show-time="0",data-avatar-size="50")
+        li
+          h3 友情链接
+          #container.col
+            待添加  
+          
+    #footer
+      - if(subdir){
+      script(type='text/javascript',src='../js/scripts.js')
+      - }else{
+      script(type='text/javascript',src='js/scripts.js')
+      - }
+      
+    

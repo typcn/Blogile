@@ -1,0 +1,36 @@
+doctype html
+html(lang="en")
+  head
+    title
+        | 404 Not Found
+    link(rel='stylesheet',href='../css/style.css')
+    meta(name='viewport',content='width=device-width, initial-scale=1.0')
+  body
+    #header
+      h1
+        a(href='/')
+          | !{BlogTitle}
+      #nav
+        .menu
+            span
+              | &nbsp;
+            span
+              | &nbsp;
+            span
+              | &nbsp;
+        ul
+          li
+            a.current(href='/') Home
+          li
+            a(href='#') Test
+          li
+            a(href='#') Weibo
+    #main
+      ul.postlist(style='width:97%')
+          li.postitle
+              h1
+                | 404 Not Found
+          
+    #footer
+      script(type='text/javascript',src='../js/scripts.js')
+    

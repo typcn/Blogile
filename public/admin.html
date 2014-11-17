@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+  <title>Blogile Manager</title>
+  <script>
+  var startime = Date.now()
+  </script>
+  <link rel="stylesheet" href="css/style.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+ </head>
+ <body>
+  <div id="header">
+   <h1><a href="./">Blogile Web Admin</a></h1>
+   <div id="nav">
+    <div class="menu">
+     <span>&nbsp;</span>
+     <span>&nbsp;</span>
+     <span>&nbsp;</span>
+    </div>
+    <ul>
+     <li><a href="#dash" class="current">Dashboard</a></li>
+     <li><a href="#list">List</a></li>
+     <li><a href="#category">Category</a></li>
+     <li><a href="#postnew">Post</a></li>
+    </ul>
+   </div>
+  </div>
+  <div id="main">
+   <ul style="width:97%" class="postlist">
+       <li class="loginform" style="display:block">
+           <h1>Login</h1>
+           <input type="text" id="username" placeholder="Username" style="width:30%">
+           <br>
+           <input type="password" id="password" placeholder="Password" style="width:30%">
+           <br>
+           <a id="login" class="button" style="margin-top:1em">Submit</a>
+       </li>
+        <li class="dash">
+            <div>
+                Uptime
+                <p id="uptime">Reading</p>
+            </div>
+            <div>
+                Memory
+                <p id="memory">Reading</p>
+            </div>
+             <div>
+                Cache hit rate
+                <p id="hitrate">Reading</p>
+            </div>
+             <div>
+                Posts num
+                <p id="postnum">Reading</p>
+            </div>
+            <br>
+            <a id="rindex" class="button">Rebuild Index Cache</a><a id="rall" class="button">Rebuild All Cache</a>
+        </li>
+        <li class="list">
+           test
+        </li>
+        <li class="category">
+           test
+        </li>
+        <li class="postnew">
+           <input id="title" type="text" placeholder="Title" style="width:93%">
+           <br>
+           <span>URL: /posts/<input id="url" type="text" placeholder="Shortname" style="width:8em;padding:0;">.html </span>
+		   <span id="ct" style="margin-left:2em;">Category: <input id="cate" type="text" placeholder="ID" style="width:8em;padding:0;"></span>
+           <textarea id="editor" style="width:93%"></textarea>
+           <br>
+           <a id="preview" class="button">Preview</a> <a id="postnow" class="button">Post now</a>
+        </li>
+   </ul>
+  </div>
+  <div id="footer">
+   <script type="text/javascript" src="js/scripts.js"></script>
+   <script type="text/javascript" src="js/admin.js"></script>
+   <style>
+   .postlist li{
+      display:none;
+      text-align: center;
+   }
+   .postlist .copyright{
+      display:block !important;
+   }
+   .dash div{
+      display:inline-block;
+      width:20%;
+      min-width:200px;
+      border-left:solid 1px #646464;
+      overflow: hidden;
+   }
+   .dash div:first-child{
+      border-left:0;
+   }
+   .button{
+      margin:1em;
+   }
+   textarea{
+    transition: height 0.2s;
+    -webkit-transition: height 0.2s;
+    -moz-transition: height 0.2s;
+    line-height:1em;
+    color:#646464;
+    min-height:300px;
+    border:solid 1px #66CCFF;
+   }
+  textarea:focus{
+    background:none;
+   }
+   @media screen and (max-width: 910px){
+      .dash div{
+          width:40%;
+          border-left:0;
+      }
+	  #ct{
+		display:block;
+	  }
+    }
+    @media screen and (max-width: 490px){
+      .dash div{
+          width:100%;
+          border-left:0;
+          border-top:solid 1px #646464;
+      }
+      .dash div:first-child{
+          border-top:0;
+      }
+    }
+   </style>
+  </div>
+ </body>
+</html>
