@@ -1,9 +1,9 @@
 {
-  "name": "Blogile",
+  "name": "blogile",
   "version": "0.0.1",
   "description": "A simple lightweight blog system.",
   "main": "server.js",
-  "repository": "git@github.com:typcn/Blogile.git",
+  "repository": "git://github.com/typcn/Blogile.git",
   "author": "TYPCN <admin@typcn.com>",
   "dependencies": {
     "async": "~0.2.8",
