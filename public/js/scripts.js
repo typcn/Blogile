@@ -24,6 +24,14 @@ $(document).ready(function(){
    		$(this).attr("src",url);
    		$(this).show();
 	});
+    if (history.pushState) {
+        (function() {
+          var tajax = document.createElement("script");
+          tajax.src = $("#footer script").attr("src").replace("scripts.js","ajax.js");
+          var s = document.getElementsByTagName("script")[0]; 
+          s.parentNode.insertBefore(tajax, s);
+        })();
+    }
 	(function() {
 	    var ds = document.createElement('script');
 	    ds.type = 'text/javascript';ds.async = true;

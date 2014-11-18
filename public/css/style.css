@@ -20,6 +20,9 @@ h1 a, h2 a, h3 a, h4 a, h5 a, h6 a {
 img{
     max-width:100%;
 }
+#header h1 a img{
+	margin-top:10px;
+}
 input[type=text], input[type=password], select, textarea {
     -webkit-appearance: none;
     width: 100%;
@@ -194,6 +197,10 @@ textarea:focus {
     margin:0;
     word-break:break-all;
 }
+ul.links{
+    list-style:none;
+    padding:0;
+}
 .postlist{
     width:70%;
     overflow:hidden;
@@ -224,10 +231,14 @@ textarea:focus {
 .postarch > span{
     margin-left:1em;
 }
-.ds-top-threads > li{
+.ds-top-threads{
+    list-style:none;
+    padding:0;
+}
+.ds-top-threads > li ,.links > li{
     border-top:solid 1px rgba(0,0,0,0.1);
 }
-.ds-top-threads > li:first-child{
+.ds-top-threads > li:first-child , .links > li:first-child{
     border-top:0;
 }
 #ds-notify{
@@ -655,4 +666,93 @@ textarea:focus {
 	-moz-animation-fill-mode: both;
 	-o-animation-fill-mode: both;
 	animation-fill-mode: both
+}
+
+.container {
+	display: none;
+}
+
+.container.show {
+	display: block;
+}
+
+.pageload-overlay {
+	position: fixed;
+	width: 100%;
+	height: 100%;
+	top: 0;
+	left: 0;
+	visibility: hidden;
+}
+
+.pageload-overlay.show {
+	visibility: visible;
+}
+
+.pageload-overlay svg {
+	position: absolute;
+	top: 0;
+	left: 0;
+	pointer-events: none;
+}
+
+.pageload-overlay svg path {
+	fill: #fff;
+}
+
+.pageload-overlay::after,
+.pageload-overlay::before {
+	content: '';
+	position: fixed;
+	width: 20px;
+	height: 20px;
+	top: 50%;
+	left: 50%;
+	margin: -10px 0 0 -10px;
+	border-radius: 50%;
+	visibility: hidden;
+	opacity: 0;
+	z-index: 1000;
+	-webkit-transition: opacity 0.15s, visibility 0s 0.15s;
+	transition: opacity 0.15s, visibility 0s 0.15s;
+}
+
+.pageload-overlay::after {
+	background: #6cc88a;
+	-webkit-transform: translateX(-20px);
+	transform: translateX(-20px);
+	-webkit-animation: moveRight 0.6s linear infinite alternate;
+	animation: moveRight 0.6s linear infinite alternate;
+}
+
+.pageload-overlay::before {
+	background: #4fc3f7;
+	-webkit-transform: translateX(20px);
+	transform: translateX(20px);
+	-webkit-animation: moveLeft 0.6s linear infinite alternate;
+	animation: moveLeft 0.6s linear infinite alternate;
+}
+
+@-webkit-keyframes moveRight {
+	to { -webkit-transform: translateX(20px); }
+}
+
+@keyframes moveRight {
+	to { transform: translateX(20px); }
+}
+
+@-webkit-keyframes moveLeft {
+	to { -webkit-transform: translateX(-20px); }
+}
+
+@keyframes moveLeft {
+	to { transform: translateX(-20px); }
+}
+
+.pageload-loading.pageload-overlay::after,
+.pageload-loading.pageload-overlay::before {
+	opacity: 1;
+	visibility: visible;
+	-webkit-transition: opacity 0.3s;
+	transition: opacity 0.3s;
 }

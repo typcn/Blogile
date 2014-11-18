@@ -34,6 +34,7 @@ function ConnDB(){
    connection.connect(function(err) {
      if(err != null){
         log("Mysql Connect error:" + err,3);
+        connection.end();
         setTimeout(ConnDB,2000);
      }else{
         log("Mysql Connected!");
@@ -67,7 +68,7 @@ app.get('/', function(req, res) {
       wait.launchFiber(getNav, 1, false);
       //Get Data from Database
       connection.query('SELECT * FROM bi_posts order by time desc LIMIT 0 , ' + app.locals.postperpage , function(err, rows) {
-         if(err){ log("Please run 'node install.js IP PORT USERNAME PASSWORD DBName' to install blogile."); ConnDB();}
+         if(err){ log("Please run 'node install.js IP PORT USERNAME PASSWORD DBName' to install blogile."); connection.end();ConnDB();}
          var pageContent = jade.renderFile(__dirname + '/views/index.jade', {
                PageTitle: app.locals.title,
                BlogTitle: app.locals.title,
@@ -102,8 +103,8 @@ app.get('/page/:num', function(req, res) {
       //Get Data from Database
       wait.launchFiber(getNav, req.params.num, true);
 
-      connection.query('SELECT * FROM bi_posts order by id desc LIMIT '+ docnum + ' , ' +  pagedoc, function(err, rows) {
-         if(err){ log("Please run 'node install.js IP PORT USERNAME PASSWORD DBName' to install blogile."); ConnDB();}
+      connection.query('SELECT * FROM bi_posts order by time desc LIMIT '+ docnum + ' , 10', function(err, rows) {
+         if(err){ log("Please run 'node install.js IP PORT USERNAME PASSWORD DBName' to install blogile."); connection.end(); ConnDB();}
          var pageContent = jade.renderFile(__dirname + '/views/index.jade', {
                PageTitle: 'Page ' + req.params.num + " - " + app.locals.title,
                BlogTitle: app.locals.title,
@@ -300,28 +301,28 @@ app.get('/admin/post/list/:ppp/:pid', function(req, res) {
 });
 
 app.post('/admin/post/new', function(req, res) {
-	if(cache.get(req.cookies.ADMINSESSION) != true){
+    if(cache.get(req.cookies.ADMINSESSION) != true){
       res.send("-1");
    }else{
-		if(req.param('url')){
-			var time = Math.round(+new Date()/1000);
-			var category = req.param('category');
-			if(!category){
-				category = 0;
-			}
-			var q = 'INSERT INTO `bi_posts`(`time`, `content`, `title`, `shortname`, `category`) VALUES (' + time + ',' +  connection.escape(req.param('content')) + ',' + connection.escape(req.param('title')) + ',' +  connection.escape(req.param('url')) + ',' + category + ')';
-			connection.query(q, function(err, rows) {
-				if(err) { 
-					log(err,3); 
-					res.send("-2"); 
-				}else{
-					res.send("0");
-					cache.del("index");
-				}
-			});
-		}else{
-			res.send("1");
-		}
+        if(req.param('url')){
+            var time = Math.round(+new Date()/1000);
+            var category = req.param('category');
+            if(!category){
+                category = 0;
+            }
+            var q = 'INSERT INTO `bi_posts`(`time`, `content`, `title`, `shortname`, `category`) VALUES (' + time + ',' +  connection.escape(req.param('content')) + ',' + connection.escape(req.param('title')) + ',' +  connection.escape(req.param('url')) + ',' + category + ')';
+            connection.query(q, function(err, rows) {
+                if(err) { 
+                    log(err,3); 
+                    res.send("-2"); 
+                }else{
+                    res.send("0");
+                    cache.del("index");
+                }
+            });
+        }else{
+            res.send("1");
+        }
    }
 });
 
@@ -329,30 +330,177 @@ app.post('/admin/upload/base64', function(req, res) {
    if(cache.get(req.cookies.ADMINSESSION) != true){
       res.send("-1");
    }else{
-	  var str = req.param('imgstr');
-	  var matches = str.match(/^data:image\/([A-Za-z-+\/]+);base64,(.+)$/);
+      var str = req.param('imgstr');
+      var matches = str.match(/^data:image\/([A-Za-z-+\/]+);base64,(.+)$/);
 
-	  if (matches.length !== 3) {
-		res.status(500);
-		res.send("-2");
-	  }
+      if (matches.length !== 3) {
+        res.status(500);
+        res.send("-2");
+      }
 
-	  var filetype = matches[1].replace("x-icon","ico");
-	  filetype = filetype.replace("jpeg","jpg");
-	  
-	  var data = new Buffer(matches[2], 'base64');
-	  
-	  var filename = Date.now() + '.' + filetype;
-	  
-	  fs.writeFile(__dirname + '/public/images/' + filename, data, function(err) { 
-			if(err){
-				res.status(500);
-				res.send("-3");
-			}
-			res.send("images/" + filename);
-	  });
+      var filetype = matches[1].replace("x-icon","ico");
+      filetype = filetype.replace("jpeg","jpg");
+      
+      var data = new Buffer(matches[2], 'base64');
+      
+      var filename = Date.now() + '.' + filetype;
+      
+      fs.writeFile(__dirname + '/public/images/' + filename, data, function(err) { 
+            if(err){
+                res.status(500);
+                res.send("-3");
+            }
+            res.send("images/" + filename);
+      });
    }
 });
+
+// API
+app.get('/api/post/:postid.json', function(req, res) {
+   var cachePage = cache.get('api-post-' + req.params.postid);
+   if(cachePage){
+      res.set('X-Builtin-Cache', 'hit');
+      cache_hit++;
+      res.send(cachePage);
+   }else{
+      //Get Data from Database
+      connection.query('SELECT * FROM bi_posts where id = ' + connection.escape(req.params.postid), function(err, rows) {
+         if(err){ log(err,3);}
+         if(rows[0] === undefined){
+            res.contentType('application/json');
+            res.send('{"error":1}');
+            return;
+         }
+         var result = {
+            "error":0,
+            "results":{
+                0:{
+                    "id":rows[0].id,
+                    "time":rows[0].time,
+                    "title":rows[0].title,
+                    "category":cache.get("categorydata-" + rows[0].category),
+                    "content":marked(rows[0].content)
+                }
+            }
+         };
+         
+         if(CACHE_ENABLE == 1){
+            cache.put('api-post-' + req.params.postid, result);
+            res.set('X-Builtin-Cache', 'miss');
+            log(req.path + " Cached");
+            cache_miss++;
+         }
+
+         res.contentType('application/json');
+         res.send(JSON.stringify(result));
+      });
+   }
+});
+
+app.get('/api/categorys/:shortname.json', function(req, res) {
+   var cachePage = cache.get('api-category-' + req.params.shortname);
+   if(cachePage){
+      res.set('X-Builtin-Cache', 'hit');
+      cache_hit++;
+      res.send(cachePage);
+   }else{
+      var info = cache.get('categorydata-' + req.params.shortname);
+      if(!info){
+        res.contentType('application/json');
+        res.send('{"error":1}');
+        return;
+      }
+      connection.query('SELECT * FROM bi_posts where category = ' + connection.escape(info.id) + ' order by time desc', function(err, rows) {
+         if(err){ log(err,3);}
+         if(rows[0] === undefined){
+            res.contentType('application/json');
+            res.send('{"error":1}');
+            return;
+         }
+         var result = {
+            "error":0,
+            "results":{}
+         };
+         
+        for (var i = 0, len = rows.length; i < len; i++) {
+            result['results'][i] = {
+                "id":rows[i].id,
+                "time":rows[i].time,
+                "title":rows[i].title,
+                "category":info,
+                "shortname":rows[i].shortname,
+                "content":rows[i].content.replace(/(<([^>]+)>)/ig,"").replace(/\r?\n|\r/g, " ").substr(0,200),
+                "firstimg":getFirstImage(rows[i].content)
+            }            
+        }
+      
+         if(CACHE_ENABLE == 1){
+            cache.put('api-category-' + req.params.shortname, result);
+            res.set('X-Builtin-Cache', 'miss');
+            log(req.path + " Cached");
+            cache_miss++;
+         }
+
+         res.contentType('application/json');
+         res.send(JSON.stringify(result));
+      });
+   }
+});
+
+app.get('/api/page/:num.json', function(req, res) {
+   var cachePage = cache.get('api-page-' + req.params.num);
+   if(cachePage){
+      res.set('X-Builtin-Cache', 'hit');
+      cache_hit++;
+      res.send(cachePage);
+   }else{
+      var docnum = req.params.num*app.locals.postperpage - app.locals.postperpage;
+      var pagedoc = docnum + app.locals.postperpage;
+      //Get Data from Database
+      if(req.params.num == 1){
+        wait.launchFiber(getNav, req.params.num, false);
+      }else{
+        wait.launchFiber(getNav, req.params.num, true);
+      }
+      
+      connection.query('SELECT * FROM bi_posts order by time desc LIMIT '+ docnum + ' , 10', function(err, rows) {
+         if(err){ log(err,3);}
+         if(rows[0] === undefined){
+            res.contentType('application/json');
+            res.send('{"error":1}');
+            return;
+         }
+         var result = {
+            "error":0,
+            "results":{},
+            "nav":cache.get("nav-" + req.params.num)
+         };
+         
+        for (var i = 0, len = rows.length; i < len; i++) {
+            result['results'][i] = {
+                "id":rows[i].id,
+                "time":rows[i].time,
+                "title":rows[i].title,
+                "shortname":rows[i].shortname,
+                "category":cache.get('categorydata-' + rows[i].category),
+                "content":rows[i].content.replace(/(<([^>]+)>)/ig,"").replace(/\r?\n|\r/g, " ").substr(0,200),
+                "firstimg":getFirstImage(rows[i].content)
+            }            
+        }
+      
+         if(CACHE_ENABLE == 1){
+            cache.put('api-page-' + req.params.num, result);
+            res.set('X-Builtin-Cache', 'miss');
+            log(req.path + " Cached");
+            cache_miss++;
+         }
+
+         res.contentType('application/json');
+         res.send(JSON.stringify(result));
+      });
+   }
+});
+
 
 app.listen(8023);
 
