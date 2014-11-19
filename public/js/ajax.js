@@ -1,12 +1,18 @@
 //AJAX Load
 var currentFolder = $("#footer script").attr("src").replace("js/scripts.js","");
-BindLink();
+if(window.location.pathname.lastIndexOf("admin.html") > -1){
+    console.log("AJAX Page loader disabled!");
+    return;
+}else{
+    BindLink();
+}
 function BindLink(){
     $(".postlist li > a").click(PostClick);
     $(".postlist li > div#container").click(PostClick);
     $("#pageNav a").click(PageClick);
     $("#header h1 a").unbind("click");
     $("#header h1 a").click(IndexClick);
+    $(".copyright a").unbind("click");
 }
 
 var loader;

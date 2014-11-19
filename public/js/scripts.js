@@ -61,7 +61,7 @@ $(document).ready(function(){
 	});
 	/* Copyright and Loadspeed */
 	var endtime = Date.now() - startime;
-	$(".postlist").append('<li class="copyright">&copy;2010 - 2014 YourSiteName All Rights Reserved. Powered by <a href="http://blog.eqoe.cn/blogile-public.html">Blogile</a>.<p> Page load time: ' + endtime + 'ms </p></li>');
+	$(".postlist").append('<li class="copyright">&copy;2010 - 2014 YourSiteName All Rights Reserved. Powered by <a href="https://github.com/typcn/Blogile">Blogile</a>.<p> Page load time: ' + endtime + 'ms </p></li>');
 	$("#header").headroom({
 	  "offset": 205,
 	  "tolerance": 5,

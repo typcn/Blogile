@@ -318,6 +318,7 @@ app.post('/admin/post/new', function(req, res) {
                 }else{
                     res.send("0");
                     cache.del("index");
+                    cache.del("api-page-1");
                 }
             });
         }else{

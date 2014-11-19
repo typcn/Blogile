@@ -135,11 +135,12 @@ $("#login").click(function(){
 
 $("#rindex").click(function(){
     $.get("admin/delcache/index");
-	alert("成功");
+    $.get("admin/delcache/api-page-1");
+	alert("Success");
 });
 $("#rall").click(function(){
     $.get("admin/delcache/all");
-	alert("成功");
+	alert("Success");
     window.location = "admin.html";
 });
 
