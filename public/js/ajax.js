@@ -49,8 +49,7 @@ function PostClick(e){
         
         $("#nav ul li a").removeClass("current");
         $("#header h1 a").attr("href","../");
-        setTimeout("loader.hide()",500);
-         $('html, body').animate({scrollTop : 0},800);
+        delayHide();
         currentFolder = "../";
         BindLink();
     });
@@ -98,8 +97,7 @@ function PageClick(e){
         
         $("#nav ul li a").removeClass("current");
         $("#header h1 a").attr("href","../");
-        setTimeout("loader.hide()",500);
-         $('html, body').animate({scrollTop : 0},800);
+        delayHide();
         currentFolder = "../";
         BindLink();
     });
@@ -145,8 +143,7 @@ function IndexClick(e){
         
         $("#nav ul li:first-child a").addClass("current");
         $("#header h1 a").attr("href","./");
-        setTimeout("loader.hide()",500);
-         $('html, body').animate({scrollTop : 0},800);
+        delayHide();
         currentFolder = "";
         BindLink();
     });
@@ -154,12 +151,23 @@ function IndexClick(e){
 
 function push(title,url){
     var c = $("#main").html();
-    window.history.pushState({content: c},title,url);
+    window.history.pushState({title:title,content: c},title,url);
     document.title = title;
+    $(window).scrollTop(0);
 }
-
+var ishow;
+function delayHide(){
+    ishow = setInterval(AnimateCheckComplete,200);
+}
+function AnimateCheckComplete(){
+    if($("#loader").hasClass("pageload-loading")){
+        clearInterval(ishow);
+        loader.hide();
+    }
+}
 window.onpopstate = function (e) {
     $("#main").html(e.state.content);
+    document.title = e.state.title;
     currentFolder = "../";
     $("#header h1 a").attr("href","../");
     if($(".time")){
