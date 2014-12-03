@@ -1,6 +1,6 @@
 {
   "name": "blogile",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "A simple lightweight blog system.",
   "main": "server.js",
   "repository": "git://github.com/typcn/Blogile.git",
