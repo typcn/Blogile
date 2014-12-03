@@ -634,7 +634,7 @@ function getNav(currpage,subdir){
 }
 
 function searchkey(query,res){
-  connection.query('select * from bi_posts where concat(title,content) like "%'+ query +'%"', function(err, rows) {
+  connection.query('select * from bi_posts where concat(title,content) like "%'+ connection.escape(query) +'%"', function(err, rows) {
     if(err){ log(err,3);}
     if(rows[0] === undefined){
       res.contentType('application/json');
