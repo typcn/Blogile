@@ -54,23 +54,18 @@ html(lang="zh-CN")
               div.ds-thread(data-thread-key=post.id,data-title=post.title,data-url=ds_url)
       ul.sidebar(style='display:none')
         li
+          #container.col
+            input#searchword(type='text')
+            a#search.button(href='javascript:void(0);')
+              i.icon-search
+        li
           h3 热评文章
           #container.col
             ul.ds-top-threads(data-range="monthly",data-num-items="5")
         li
           h3 文章分类
           #container.col
-            ul.links
-              li
-                a(href='/categorys/code.html') 代码
-              li
-                a(href='/categorys/tech.html',rel='nofollow') 教程
-              li
-                a(href='/categorys/software.html',rel='nofollow') 软件
-              li
-                a(href='/categorys/tucao.html',rel='nofollow') 吐槽
-              li
-                a(href='/categorys/other.html',rel='nofollow') 其他
+            待添加
         li
           h3 最近访客
           #container.col
@@ -78,17 +73,7 @@ html(lang="zh-CN")
         li
           h3 友情链接
           #container.col
-            ul.links
-              li
-                a(href='http://www.52zsb.com/') 作死辅助网
-              li
-                a(href='http://aboutall.cn/',rel='nofollow') Koukatei
-              li
-                a(href='https://kirito.me/',rel='nofollow') Kirito
-              li
-                a(href='http://me.iqing.us/',rel='nofollow') 卿
-              li
-                a(href='http://jibushengdan.tk/',rel='nofollow') 鸡不生蛋
+            待添加
     #footer
       script(type='text/javascript',src='../js/scripts.js')
     

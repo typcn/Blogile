@@ -94,6 +94,11 @@ html(lang="zh-CN")
           | !{nav}
       ul.sidebar
         li
+          #container.col
+            input#searchword(type='text')
+            a#search.button(href='javascript:void(0);')
+              i.icon-search
+        li
           h3 热评文章
           #container.col
             ul.ds-top-threads(data-range="monthly",data-num-items="5")

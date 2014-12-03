@@ -8,6 +8,7 @@ var mysql = require('mysql');
 var marked = require('marked');
 var wait =require('wait.for');
 var fs = require("fs");
+var http = require('http');
 app.use(bodyParser({limit: '10mb'}));
 app.use(cookieParser());
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -448,7 +449,65 @@ app.get('/api/categorys/:shortname.json', function(req, res) {
    }
 });
 
+app.post('/api/search/:query.json', function(req, res) {
+  res.contentType('application/json');
+  res.set('Access-Control-Allow-Origin', '*');
+   var cachePage = cache.get('api-search-' + req.params.query);
+   if(cachePage){
+      res.set('X-Builtin-Cache', 'hit');
+      cache_hit++;
+      res.send(cachePage);
+   }else{
+      if(!req.param('TK') || !req.param('ua')){
+        res.setHeader('Cache-Control', 'max-age=0');
+        res.send('{"error":1,"msg":"No access token!"}');
+        return;
+      }
+      var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+      var purl = "/hash/verify/" + req.param('TK') + "/" + req.param('ua') + "?cfip=" + ip;
+
+
+      http.get({
+          host: 'antispam.eqoe.cn',
+          path: purl
+      }, function(response) {
+          // Continuously update stream with data
+          var body = '';
+          response.on('data', function(d) {
+              body += d;
+          });
+          response.on('end', function() {
+              var parsed = JSON.parse(body);
+              if(parsed.success == 0){
+                res.contentType('application/json');
+                res.send('{"error":1,"msg":"Access token error"}');
+                return;
+              }else{
+                searchkey(req.params.query,res);
+              }
+          });
+      });
+
+   }
+});
+
+app.get('/api/search/:query.json', function(req, res) {
+  res.set('Access-Control-Allow-Origin', '*');
+  res.contentType('application/json');
+   var cachePage = cache.get('api-search-' + req.params.query);
+   if(cachePage){
+      res.set('X-Builtin-Cache', 'hit');
+      cache_hit++;
+      res.send(cachePage);
+   }else{
+      res.setHeader('Cache-Control', 'max-age=0');
+      res.send('{"error":1}');
+   }
+});
+
 app.get('/api/page/:num.json', function(req, res) {
+  res.contentType('application/json');
+  res.set('Access-Control-Allow-Origin', '*');
    var cachePage = cache.get('api-page-' + req.params.num);
    if(cachePage){
       res.set('X-Builtin-Cache', 'hit');
@@ -574,6 +633,44 @@ function getNav(currpage,subdir){
    cache.put("nav-" + currpage,DOM);
 }
 
+function searchkey(query,res){
+  log(query,3);
+  connection.query('select * from bi_posts where concat(title,content) like "%'+ query +'%"', function(err, rows) {
+    if(err){ log(err,3);}
+    if(rows[0] === undefined){
+      res.contentType('application/json');
+      res.send('{"error":2}');
+      return;
+    }
+
+
+    var result = {
+      "error":0,
+      "results":{}
+    };
+
+    for (var i = 0, len = rows.length; i < len; i++) {
+        result['results'][i] = {
+            "id":rows[i].id,
+            "time":rows[i].time,
+            "title":rows[i].title,
+            "category":cache.get('categorydata-' + rows[i].category),
+            "shortname":rows[i].shortname,
+            "content":rows[i].content.replace(/(<([^>]+)>)/ig,"").replace(/\r?\n|\r/g, " ").substr(0,200),
+            "firstimg":getFirstImage(rows[i].content)
+        }            
+    }
+
+    if(CACHE_ENABLE == 1){
+      cache.put('api-search-' + query, result);
+      res.set('X-Builtin-Cache', 'miss');
+      cache_miss++;
+    }
+
+    res.contentType('application/json');
+    res.send(JSON.stringify(result));
+  });
+}
 
 setInterval(logStat,60000);
 logStat();
