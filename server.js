@@ -599,7 +599,7 @@ app.get('/feed.xml', function(req, res) {
           outXML += '<entry><title> ' + rows[i].title + ' </title><link href="'+ currPath + 'posts/' + rows[i].shortname + '.html"/><updated>' + t + '</updated><content type="html">' + htmlEscape(marked(rows[i].content)) + '</content></entry>'
 
         }
-      
+        outXML += '</feed>';
          if(CACHE_ENABLE == 1){
             cache.put('feed', outXML);
             res.set('X-Builtin-Cache', 'miss');
