@@ -73,4 +73,8 @@ WARN: The project is not completed.
 
 * 后台未开发完毕，只能发表文章，要管理请使用数据库管理软件，比如phpmyadmin 。
 * 可能不稳定，最好定时重启它
+<<<<<<< HEAD
 * 文章列表无法抓取 Markdown 图片，请使用 \<img\> 标签。
+=======
+* 文章列表无法抓取 Markdown 图片，请使用 \<img\> 标签。
+>>>>>>> FETCH_HEAD
