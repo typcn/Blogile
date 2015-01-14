@@ -57,6 +57,11 @@ marked.setOptions({
   }
 });
 
+app.use(function (req, res, next) {
+  res.set('X-Blogile-Version', '0.13');
+  next();
+});
+
 app.get('/', function(req, res) {
    var loadStart = Date.now();
    var cachePage = cache.get('index');
@@ -561,6 +566,51 @@ app.get('/api/page/:num.json', function(req, res) {
    }
 });
 
+app.get('/feed.xml', function(req, res) {
+  res.set('Access-Control-Allow-Origin', '*');
+  res.contentType('application/xml');
+   var cachePage = cache.get('feed');
+   if(cachePage){
+      res.set('X-Builtin-Cache', 'hit');
+      cache_hit++;
+      res.send(cachePage);
+   }else{
+
+      var currPath = req.protocol + '://' + req.get('host') + req.originalUrl;
+      currPath = currPath.replace("feed.xml","");
+
+      var outXML = '<?xml version="1.0" encoding="utf-8"?> <feed xmlns="http://www.w3.org/2005/Atom"><title>' + app.locals.title +'</title><link href="' + currPath + '"/>';
+
+      connection.query('SELECT * FROM bi_posts order by time desc LIMIT 0,10', function(err, rows) {
+         if(err){ log(err,3);}
+         if(rows[0] === undefined){
+            res.contentType('application/json');
+            res.send('{"error":1}');
+            return;
+         }
+
+
+        var lastupdate = new Date(rows[0].time*1000).toJSON().toString();
+        outXML += '<updated>' + lastupdate + '</updated>';
+         
+        for (var i = 0, len = rows.length; i < len; i++) {
+
+          var t = new Date(rows[i].time*1000).toJSON().toString();
+          outXML += '<entry><title> ' + rows[i].title + ' </title><link href="'+ currPath + 'posts/' + rows[i].shortname + '.html"/><updated>' + t + '</updated><content type="html">' + htmlEscape(marked(rows[i].content)) + '</content></entry>'
+
+        }
+      
+         if(CACHE_ENABLE == 1){
+            cache.put('feed', outXML);
+            res.set('X-Builtin-Cache', 'miss');
+            log(req.path + " Cached");
+            cache_miss++;
+         }
+
+         res.send(outXML);
+      });
+   }
+});
 
 app.listen(8023);
 
@@ -685,6 +735,15 @@ function logStat(){
 process.on('uncaughtException', function(err) {
   log('Caught exception: ' + err,3);
 });
+
+function htmlEscape(str) {
+    return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+}
 
 function log(str,level){
    var msg = "INFO";
