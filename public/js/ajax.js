@@ -5,12 +5,31 @@ if(window.location.pathname.lastIndexOf("admin.html") > -1){
 }else{
     BindLink();
 }
+
+window.history.pushState({title:$("title").text(),content: $("#main").html()},$("title").text(),window.location.pathname);
+
 function BindLink(){
     $(".postlist li > a").click(PostClick);
     $(".postlist li > div#container").click(PostClick);
     $("#pageNav a").click(PageClick);
     $("#header h1 a").unbind("click");
     $("#header h1 a").click(IndexClick);
+    $(".postcontent a").unbind("click");
+    $("#search").unbind("click");
+    $("#search").click(function(){
+        $("#st").remove();
+        var k = $("#searchword").val();
+        $("<p id='st'>init..</p>").insertAfter($("#searchword").parent());
+        $.getJSON( currentFolder + "api/search/"+k+".json",function(data){
+            if(data.error == 1){
+                postsearch(k);
+            }else{
+                loader.show(function(){
+                    fillsearch(data.results);
+                });
+            }
+        });
+    });
 }
 
 var loader;
@@ -157,20 +176,6 @@ function IndexClick(e){
         });
     });
 }
-$("#search").click(function(){
-    $("#st").remove();
-    var k = $("#searchword").val();
-    $("<p id='st'>init..</p>").insertAfter($("#searchword").parent());
-    $.getJSON( currentFolder + "api/search/"+k+".json",function(data){
-        if(data.error == 1){
-            postsearch(k);
-        }else{
-            loader.show(function(){
-                fillsearch(data.results);
-            });
-        }
-    });
-});
 
 function postsearch(k){
     $("#st").html("Server need check whether you are a human,Please allow up to 5 seconds. ");

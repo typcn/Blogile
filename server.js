@@ -58,7 +58,7 @@ marked.setOptions({
 });
 
 app.use(function (req, res, next) {
-  res.set('X-Blogile-Version', '0.13');
+  res.set('X-Blogile-Version', '0.14');
   next();
 });
 
@@ -684,7 +684,8 @@ function getNav(currpage,subdir){
 }
 
 function searchkey(query,res){
-  connection.query('select * from bi_posts where concat(title,content) like "%?%"', query ,function(err, rows) {
+  var qr = "%" + query + "%";
+  connection.query('select * from bi_posts where concat(title,content) like ? order by time desc', qr ,function(err, rows) {
     if(err){ log(err,3);}
     if(rows[0] === undefined){
       res.contentType('application/json');
